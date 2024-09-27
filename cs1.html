@@ -1,0 +1,370 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Comment Section</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0fff0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2e8b57;
+        }
+        .comment-form {
+            margin-bottom: 20px;
+        }
+        #commentInput {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .comment {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .comment-actions {
+            margin-top: 10px;
+        }
+        .comment-actions button {
+            margin-right: 5px;
+            background-color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .comment-actions button:hover {
+            background-color: #e0e0e0;
+        }
+        .reply {
+            margin-left: 20px;
+            border-left: 2px solid #4CAF50;
+            padding-left: 10px;
+        }
+        .emoji-picker {
+            display: none;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .emoji-picker span {
+            cursor: pointer;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Comments</h1>
+        <div class="comment-form">
+            <textarea id="commentInput" rows="4" placeholder="Write a comment..."></textarea>
+            <button class="btn" onclick="addComment()">Post Comment</button>
+        </div>
+        <div id="commentsContainer"></div>
+    </div>
+
+    <script>
+        let comments = [];
+        let commentId = 0;
+
+        function addComment(parentId = null) {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            if (content) {
+                const comment = {
+                    id: commentId++,
+                    content: content,
+                    likes: 0,
+                    replies: [],
+                    parentId: parentId
+                };
+                if (parentId === null) {
+                    comments.push(comment);
+                } else {
+                    const parentComment = findComment(comments, parentId);
+                    if (parentComment) {
+                        parentComment.replies.push(comment);
+                    }
+                }
+                input.value = '';
+                renderComments();
+            }
+        }
+
+        function findComment(commentsArray, id) {
+            for (let comment of commentsArray) {
+                if (comment.id === id) return comment;
+                const found = findComment(comment.replies, id);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function renderComments() {
+            const container = document.getElementById('commentsContainer');
+            container.innerHTML = '';
+            comments.forEach(comment => {
+                container.appendChild(createCommentElement(comment));
+            });
+        }
+
+        function createCommentElement(comment) {
+            const div = document.createElement('div');
+            div.className = 'comment';
+            div.innerHTML = `
+                <p>${comment.content}</p>
+                <div class="comment-actions">
+                    <button onclick="likeComment(${comment.id})">Like (${comment.likes})</button>
+                    <button onclick="showReplyForm(${comment.id})">Reply</button>
+                    <button onclick="showEmojiPicker(${comment.id})">😊</button>
+                    <button onclick="deleteComment(${comment.id})">Delete</button>
+                </div>
+                <div id="emojiPicker${comment.id}" class="emoji-picker"></div>
+                <div id="replyForm${comment.id}" style="display:none;">
+                    <textarea id="replyInput${comment.id}" rows="2" placeholder="Write a reply..."></textarea>
+                    <button class="btn" onclick="addReply(${comment.id})">Post Reply</button>
+                </div>
+            `;
+            if (comment.replies.length > 0) {
+                const repliesDiv = document.createElement('div');
+                repliesDiv.className = 'replies';
+                comment.replies.forEach(reply => {
+                    repliesDiv.appendChild(createCommentElement(reply));
+                });
+                div.appendChild(repliesDiv);
+            }
+            return div;
+        }
+
+        function likeComment(id) {
+            const comment = findComment(comments, id);
+            if (comment) {
+                comment.likes++;
+                renderComments();
+            }
+        }
+
+        function showReplyForm(id) {
+            const replyForm = document.getElementById(`replyForm${id}`);
+            replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function addReply(parentId) {
+            const replyInput = document.getElementById(`replyInput${parentId}`);
+            const content = replyInput.value.trim();
+            if (content) {
+                addComment(parentId);
+                replyInput.value = '';
+                showReplyForm(parentId);
+            }
+        }
+
+        function showEmojiPicker(id) {
+            const emojiPicker = document.getElementById(`emojiPicker${id}`);
+            if (emojiPicker.style.display === 'none') {
+                emojiPicker.style.display = 'block';
+                emojiPicker.innerHTML = '😊 😂 🤔 👍 👎 ❤️'.split(' ').map(emoji => 
+                    `<span onclick="addEmoji(${id}, '${emoji}')">${emoji}</span>`
+                ).join('');
+            } else {
+                emojiPicker.style.display = 'none';
+            }
+        }
+
+        function addEmoji(id, emoji) {
+            const comment = findComment(comments, id);
+            if (comment) {
+                comment.content += ` ${emoji}`;
+                renderComments();
+            }
+        }
+
+        function deleteComment(id) {
+            comments = comments.filter(comment => comment.id !== id);
+            comments.forEach(comment => {
+                comment.replies = comment.replies.filter(reply => reply.id !== id);
+            });
+            renderComments();
+        }
+
+        renderComments();
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Comment Section</title>
+    <style>
+        /* ... (keep the existing styles) ... */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Comments</h1>
+        <div class="comment-form">
+            <textarea id="commentInput" rows="4" placeholder="Write a comment..."></textarea>
+            <button class="btn" onclick="addComment()">Post Comment</button>
+        </div>
+        <div id="commentsContainer"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';  // Update this if your backend is on a different URL
+
+        async function fetchComments() {
+            const response = await fetch(`${API_URL}/comments`);
+            const comments = await response.json();
+            return comments;
+        }
+
+        async function addComment(parentId = null) {
+            const input = document.getElementById('commentInput');
+            const content = input.value.trim();
+            if (content) {
+                const response = await fetch(`${API_URL}/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content, parent_id: parentId }),
+                });
+                const newComment = await response.json();
+                input.value = '';
+                await renderComments();
+            }
+        }
+
+        async function likeComment(id) {
+            const response = await fetch(`${API_URL}/comments/${id}/like`, {
+                method: 'POST',
+            });
+            const result = await response.json();
+            await renderComments();
+        }
+
+        async function deleteComment(id) {
+            await fetch(`${API_URL}/comments/${id}`, {
+                method: 'DELETE',
+            });
+            await renderComments();
+        }
+
+        function createCommentElement(comment) {
+            const div = document.createElement('div');
+            div.className = 'comment';
+            div.innerHTML = `
+                <p>${comment.content}</p>
+                <div class="comment-actions">
+                    <button onclick="likeComment(${comment.id})">Like (${comment.likes})</button>
+                    <button onclick="showReplyForm(${comment.id})">Reply</button>
+                    <button onclick="showEmojiPicker(${comment.id})">😊</button>
+                    <button onclick="deleteComment(${comment.id})">Delete</button>
+                </div>
+                <div id="emojiPicker${comment.id}" class="emoji-picker"></div>
+                <div id="replyForm${comment.id}" style="display:none;">
+                    <textarea id="replyInput${comment.id}" rows="2" placeholder="Write a reply..."></textarea>
+                    <button class="btn" onclick="addReply(${comment.id})">Post Reply</button>
+                </div>
+            `;
+            if (comment.replies && comment.replies.length > 0) {
+                const repliesDiv = document.createElement('div');
+                repliesDiv.className = 'replies';
+                comment.replies.forEach(reply => {
+                    repliesDiv.appendChild(createCommentElement(reply));
+                });
+                div.appendChild(repliesDiv);
+            }
+            return div;
+        }
+
+        async function renderComments() {
+            const comments = await fetchComments();
+            const container = document.getElementById('commentsContainer');
+            container.innerHTML = '';
+            comments.forEach(comment => {
+                container.appendChild(createCommentElement(comment));
+            });
+        }
+
+        function showReplyForm(id) {
+            const replyForm = document.getElementById(`replyForm${id}`);
+            replyForm.style.display = replyForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function addReply(parentId) {
+            const replyInput = document.getElementById(`replyInput${parentId}`);
+            const content = replyInput.value.trim();
+            if (content) {
+                await addComment(parentId);
+                replyInput.value = '';
+                showReplyForm(parentId);
+            }
+        }
+
+        function showEmojiPicker(id) {
+            const emojiPicker = document.getElementById(`emojiPicker${id}`);
+            if (emojiPicker.style.display === 'none') {
+                emojiPicker.style.display = 'block';
+                emojiPicker.innerHTML = '😊 😂 🤔 👍 👎 ❤️'.split(' ').map(emoji => 
+                    `<span onclick="addEmoji(${id}, '${emoji}')">${emoji}</span>`
+                ).join('');
+            } else {
+                emojiPicker.style.display = 'none';
+            }
+        }
+
+        async function addEmoji(id, emoji) {
+            const comment = await fetch(`${API_URL}/comments/${id}`).then(res => res.json());
+            if (comment) {
+                const updatedContent = comment.content + ` ${emoji}`;
+                await fetch(`${API_URL}/comments/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ content: updatedContent }),
+                });
+                await renderComments();
+            }
+        }
+
+        // Initial render
+        renderComments();
+    </script>
+</body>
+</html>
